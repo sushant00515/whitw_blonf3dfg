@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Money — Mock</title>
+  <style>
+    :root{
+      --app-bg:#f5f0f7;
+      --card:#ffffff;
+      --text:#121114;
+      --muted:#8b8892;
+      --btn:#efedf2;
+      --border:#ede8f2;
+      --accent:#7b3aed;
+      --radius:22px;
+      --shadow:0 2px 8px rgba(37,25,59,.04), 0 12px 28px rgba(37,25,59,.06);
+      --dock-bg: rgba(255,255,255,.72);
+      --dock-border:#ece7fa;
+      --dock-ink: rgba(91,74,143,.92);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,'Apple Color Emoji','Segoe UI Emoji'; background:var(--app-bg); color:var(--text); -webkit-font-smoothing:antialiased}
+
+    .app{max-width:980px; margin:18px auto 96px; padding:0 16px}
+    header{display:flex; align-items:center; justify-content:space-between; padding:2px 6px 14px}
+    header .h1{font-size:34px; font-weight:800}
+    .avatar{width:36px; height:36px; border-radius:50%; overflow:hidden; box-shadow:var(--shadow); border:2px solid #fff; background:#fff; cursor:pointer; padding:0}
+    .avatar img{width:100%; height:100%; object-fit:cover}
+
+    .card{background:var(--card); border-radius:24px; box-shadow:var(--shadow)}
+    .balance{padding:18px}
+    .balance .label{color:var(--muted); font-weight:700; letter-spacing:.2px}
+    .balance .amount{font-size:48px; font-weight:900; margin:6px 0}
+    .balance .meta{color:var(--muted); font-weight:700}
+    .row{display:flex; gap:12px; margin-top:14px}
+    .btn{appearance:none; border:none; background:var(--btn); color:#111; font-weight:800; padding:14px 20px; border-radius:999px; cursor:pointer}
+    .btn:active{transform:translateY(1px)}
+
+    .divider{height:1px; background:var(--border); margin:14px -18px}
+    .paychecks{display:flex; align-items:center; justify-content:space-between; color:#232028; font-weight:800}
+    .paychecks .muted{color:var(--muted); font-weight:700}
+
+    .section-title{font-weight:900; font-size:20px; margin:18px 8px}
+    .tile{display:flex; align-items:center; justify-content:space-between; padding:18px; border-radius:18px; background:#fff; border:1px solid var(--border)}
+    .tile + .tile{margin-top:14px}
+    .tile .left{display:flex; align-items:center; gap:12px}
+    .ico{width:48px; height:48px; border-radius:14px; display:grid; place-items:center; background:#f5f4fb}
+    .ico svg{width:26px; height:26px}
+    .t-title{font-weight:900; font-size:18px}
+    .t-sub{color:var(--muted); font-weight:700; margin-top:2px}
+    .circlechev{width:44px; height:44px; border-radius:50%; border:1px solid var(--border); display:grid; place-items:center; background:#faf8ff}
+
+    .dock{position:fixed; left:0; right:0; bottom:0; background:var(--dock-bg); backdrop-filter:blur(12px); border-top:1px solid var(--dock-border)}
+    .dock .inner{max-width:980px; margin:0 auto; padding:10px 18px; display:flex; align-items:center; justify-content:space-between}
+    .dock .val{font-weight:900; font-size:16px; color:#1f1c26; letter-spacing:.2px}
+    .dock .icons{display:flex; align-items:center; gap:28px}
+    .dock button{appearance:none; border:none; background:transparent; width:44px; height:44px; display:grid; place-items:center; border-radius:14px; cursor:pointer; color:var(--dock-ink); opacity:.9}
+    .dock button:hover{opacity:1}
+    .dock button svg{width:22px; height:22px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="h1">Money</div>
+      <button class="avatar" id="avatarBtn" title="Change photo" aria-label="Change profile photo">
+        <img id="avatarImg" src="/mnt/data/582058056_1755806848557374_461505361591287860_n.jpg" alt="Profile"/>
+      </button>
+      <input id="avatarPicker" type="file" accept="image/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
+    </header>
+
+    <main class="grid" aria-live="polite">
+      <section class="card balance" aria-labelledby="bal">
+        <div class="label" id="bal">Cash balance</div>
+        <div class="amount" id="amt" data-value="33846">$33,846.00</div>
+        <div class="meta">Account••3020 &nbsp; Routing••261</div>
+        <div class="row">
+          <button class="btn" id="addBtn">Add money</button>
+          <button class="btn" id="wdBtn">Withdraw</button>
+        </div>
+        <div class="divider"></div>
+        <div class="paychecks">
+          <div>✔ Paychecks</div>
+          <div class="muted">Ready for first paycheck ▸</div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-title">Save &amp; invest</div>
+        <article class="tile">
+          <div class="left">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2v20M16.5 7.5c0-2-1.79-3.5-4.5-3.5S7 5.5 7 7.5 8.5 10 12 10s5 1.5 5 3.5-1.8 3.5-5 3.5-4.5-1.5-4.5-3.5" stroke="#18a34a" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div>
+              <div class="t-title">Savings</div>
+              <div class="t-sub">$0.00 · Up to 4% interest</div>
+            </div>
+          </div>
+          <div class="circlechev">▸</div>
+        </article>
+
+        <article class="tile">
+          <div class="left">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#0ea5e9" stroke-width="2"/><path d="M9 8h5.2a2 2 0 0 1 0 4H9h5a2 2 0 0 1 0 4H9" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div>
+              <div class="t-title">Bitcoin</div>
+              <div class="t-sub">$0.00 · 0.00% today</div>
+            </div>
+          </div>
+          <div class="circlechev">▸</div>
+        </article>
+
+        <article class="tile">
+          <div class="left">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none"><path d="M4 18V6m8 12V9m8 9V3" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div>
+              <div class="t-title">Stocks</div>
+              <div class="t-sub">$0.00 · 0.00% today</div>
+            </div>
+          </div>
+          <div class="circlechev">▸</div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div class="dock" role="navigation" aria-label="Bottom">
+    <div class="inner">
+      <div class="val" id="miniVal">$33.8K</div>
+      <div class="icons">
+        <button title="Square"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="3" ry="3" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+        <button title="Dollar"><svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 8.5c0-2-1.8-3.5-4.5-3.5S7.5 6.5 7.5 8.5s1.5 3 4.5 3 4.5 1.5 4.5 3.5-1.8 3.5-4.5 3.5-4.5-1.5-4.5-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <button title="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <button title="Clock"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const amt = document.getElementById('amt');
+    const mini = document.getElementById('miniVal');
+    const ADD_AMOUNT = 500000;
+
+    function getBalance(){
+      return parseFloat(localStorage.getItem('balance') || 33846);
+    }
+
+    function setBalance(v){
+      localStorage.setItem('balance', v.toFixed(2));
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    function render(){
+      const bal = getBalance();
+      amt.textContent = `$${bal.toLocaleString('en-US', {minimumFractionDigits:2})}`;
+      mini.textContent = `$${(bal / 1000).toFixed(1)}K`;
+    }
+
+    render();
+
+    document.getElementById('addBtn').addEventListener('click',()=>{
+      const newBal = getBalance() + ADD_AMOUNT;
+      setBalance(newBal);
+      render();
+      alert('Added $500,000');
+    });
+
+    document.getElementById('wdBtn').addEventListener('click',()=>{
+      window.location.href = 'index.html';
+    });
+
+    (function(){
+      const btn = document.getElementById('avatarBtn');
+      const picker = document.getElementById('avatarPicker');
+      const img = document.getElementById('avatarImg');
+      const KEY = 'moneyDemo.avatar';
+      try{
+        const saved = localStorage.getItem(KEY);
+        if(saved){ img.src = saved; }
+      }catch(e){}
+      btn.addEventListener('click', ()=> picker.click());
+      picker.addEventListener('change', () => {
+        const file = picker.files && picker.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = e => { img.src = e.target.result; try{ localStorage.setItem(KEY, e.target.result); }catch(err){} };
+        reader.readAsDataURL(file);
+      });
+    })();
+  </script>
+</body>
+</html>

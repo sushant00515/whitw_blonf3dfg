@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <link rel="manifest" href="manifest.json">
+  <title>Cash-Style Pay Screen (Mobile)</title>
+  <style>
+    :root{
+      --bg:rgba(255,255,255,0.9);
+      --text:#0b0b0f; --muted:#9aa0a6; --line:#ececec;
+      --green:#22c55e; --cash:#12c46f; --shadow:0 8px 30px rgba(0,0,0,.06);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0; font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial;
+      background:#ffffff; /* default mobile background */
+    }
+
+    /* MOBILE-FIRST: full-bleed, starts at the top, fits screen */
+    .phone{
+      width:100%; height:100dvh; /* use dynamic viewport units for mobile */
+      background:var(--bg);
+      overflow:auto; /* scroll when needed */
+      padding-top:calc( env(safe-area-inset-top) + 0px );
+      -webkit-overflow-scrolling:touch;
+    }
+
+    .header{position:sticky;top:0;background:rgba(255,255,255,0.86);backdrop-filter:saturate(180%) blur(12px);
+      display:flex;align-items:center;justify-content:space-between;padding:18px 16px 10px 16px;border-bottom:1px solid var(--line);z-index:10}
+    .header .close{width:22px;height:22px;display:grid;place-items:center;border-radius:10px;cursor:pointer}
+    .header .amount{font-size:26px;font-weight:700;letter-spacing:.3px}
+    .pay-btn{background:#ccead7;color:#065f46;border:none;padding:10px 18px;border-radius:999px;font-weight:800;cursor:pointer;transition:.2s ease;opacity:.4;pointer-events:none}
+    .pay-btn.active{background:#22c55e;color:#fff;opacity:1;pointer-events:auto}
+
+    .form{padding:6px 16px 2px 16px}
+    .row{display:flex;align-items:center;gap:10px;padding:12px 0}
+    .row + .row{border-top:1px solid var(--line)}
+    .label{width:38px;color:var(--muted);font-weight:700;font-size:14px}
+    .field{flex:1}
+    .input{width:100%;border:none;outline:none;background:transparent;font-size:16px;color:#111}
+    .req{color:#c0c4c9}
+    .addon{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:#f4f5f6}
+
+    .use-balance{display:flex;align-items:center;gap:10px;padding:14px 16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+    .cash-icon{width:24px;height:24px;border-radius:8px;background:var(--cash);display:grid;place-items:center;color:white;font-weight:900}
+    .caret{margin-left:auto;opacity:.6}
+
+    .section-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 6px 16px}
+    .section-title{font-weight:800;font-size:18px}
+    .use-suggested{border:none;background:transparent;color:#6b7280;font-weight:700;border-radius:999px;padding:8px 10px;cursor:pointer}
+
+    .list{padding:0 6px 18px 6px}
+    .item{display:flex;align-items:center;gap:12px;padding:12px 10px;border-radius:14px;cursor:pointer;transition:background .2s ease}
+    .item:hover{background:#f2f2f2}
+    .avatar{width:44px;height:44px;border-radius:50%;background:#ddd;object-fit:cover}
+    .meta{flex:1;min-width:0}
+    .name{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cashtag{color:#6f7782;font-size:14px}
+    .check{width:22px;height:22px;border:2px solid #cfd3d7;border-radius:6px;display:grid;place-items:center;cursor:pointer;transition:.15s;background:#fff}
+    .check.checked{border-color:var(--green);background:var(--green)}
+    .check.checked::after{content:"";width:10px;height:10px;transform:rotate(45deg);border-right:2px solid white;border-bottom:2px solid white;margin-top:-2px}
+    .divider{height:1px;background:var(--line);margin:6px 0}
+
+    /* DESKTOP/TABLET: center the translucent card with backdrop */
+    @media (min-width: 640px){
+      body{background:linear-gradient(135deg,#e9f4ee,#fafafa);display:flex;justify-content:center;align-items:flex-start}
+      .phone{max-width:420px;height:calc(100dvh - 40px);margin:20px;border-radius:28px;box-shadow:0 10px 40px rgba(0,0,0,.1);backdrop-filter:blur(20px);}
+    }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <header class="header">
+      <div class="close" title="Close" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </div>
+      <div class="amount" id="displayAmount">$0</div>
+      <button class="pay-btn" aria-label="Pay">Pay</button>
+    </header>
+
+    <section class="form">
+      <div class="row">
+        <div class="label">To</div>
+        <div class="field">
+          <input class="input" placeholder="Name, $Cashtag, Phone, Email" aria-label="Recipient" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="label">For</div>
+        <div class="field req">Note (required)</div>
+        <div class="addon" title="Choose a note">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c0 .66.26 1.3.73 1.77.47.47 1.11.73 1.77.73H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </div>
+      </div>
+    </section>
+
+    <div class="use-balance">
+      <div class="cash-icon">$</div>
+      <div style="font-weight:700">Use</div>
+      <div style="margin-left:6px;color:#6f7782">Cash balance: <span style="color:#111;font-weight:700">$33,846.00</span></div>
+      <svg class="caret" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </div>
+
+    <div class="section-head">
+      <div class="section-title">Suggested</div>
+      <button class="use-suggested" id="useSuggested">Use suggested</button>
+    </div>
+
+    <section class="list" id="suggested"></section>
+  </div>
+  
+  <!-- Face ID overlay -->
+<div id="faceIdOverlay" aria-live="polite" aria-busy="true" style="display:none">
+  <div class="faceid-backdrop" role="presentation"></div>
+  <div class="faceid-card" role="dialog" aria-label="Face ID approval">
+    <div class="faceid-circle">
+      <!-- Face icon -->
+      <svg class="faceid-face" viewBox="0 0 64 64" aria-hidden="true">
+        <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Corners like iOS face frame -->
+          <path d="M10 18v-4a4 4 0 0 1 4-4h4" />
+          <path d="M50 10h4a4 4 0 0 1 4 4v4" />
+          <path d="M58 46v4a4 4 0 0 1-4 4h-4" />
+          <path d="M18 54h-4a4 4 0 0 1-4-4v-4" />
+          <!-- Eyes + smile -->
+          <path d="M24 28h0" />
+          <path d="M40 28h0" />
+          <path d="M24 40c8 6 16 0 16 0" />
+          <!-- Face outline -->
+          <rect x="16" y="16" width="32" height="32" rx="10" />
+        </g>
+      </svg>
+
+      <!-- scanning bar -->
+      <div class="faceid-scan"></div>
+
+      <!-- success tick (appears after scan) -->
+      <svg class="faceid-tick" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <div class="faceid-text" id="faceIdText">Face ID</div>
+  </div>
+</div>
+
+<style>
+  :root {
+    --green: #22c55e;
+  }
+
+  #faceIdOverlay {
+    position: fixed; inset: 0; z-index: 9999;
+  }
+  .faceid-backdrop {
+    position: absolute; inset: 0; background: rgba(0,0,0,.75);
+  }
+  .faceid-card {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff; border-radius: 18px;
+    padding: 22px 24px; width: 260px;
+    box-shadow: 0 18px 44px rgba(0,0,0,.25);
+    display: grid; justify-items: center; gap: 14px;
+  }
+  .faceid-circle {
+    position: relative;
+    width: 120px; height: 120px;
+    border-radius: 999px;
+    border: 3px solid rgba(34,197,94,.25);
+    display: grid; place-items: center;
+    overflow: hidden;
+  }
+  .faceid-face {
+    width: 76px; height: 76px;
+    color: rgba(34,197,94,.9);
+    opacity: .95;
+  }
+  .faceid-scan {
+    position: absolute; left: 0; right: 0; height: 18px;
+    background: linear-gradient(90deg,
+      rgba(34,197,94,0) 0%,
+      rgba(34,197,94,.15) 40%,
+      rgba(34,197,94,.25) 50%,
+      rgba(34,197,94,.15) 60%,
+      rgba(34,197,94,0) 100%);
+    top: -18px;
+    animation: face-scan 1.5s ease-in-out 1 forwards;
+  }
+  @keyframes face-scan {
+    0% { top: -18px; }
+    50% { top: 51px; }
+    100% { top: 138px; }
+  }
+  .faceid-tick {
+    position: absolute; width: 64px; height: 64px;
+    color: var(--green);
+    opacity: 0; transform: scale(.6);
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  /* success state */
+  .ok .faceid-scan { display: none; }
+  .ok .faceid-tick { opacity: 1; transform: scale(1); }
+  .faceid-text {
+    font-weight: 800; color: #111; letter-spacing: .2px;
+  }
+  .ok + .faceid-text,
+  .ok ~ .faceid-text {
+    color: var(--green);
+  }
+</style>
+
+
+ <script>
+  const basePeople = [
+    { name: 'sinz Vaasau', handle: '$sinavvs' },
+    { name: 'Mariah H', handle: '$RiahhBabyy' },
+    { name: 'Sarah Lee', handle: '$Famlee885' },
+    { name: 'Marisa Perez', handle: '$mrisa08' },
+    { name: 'Qwuanell', handle: '$s3rvex1n' },
+    { name: 'Darien Levario', handle: '$darienr6' }
+  ];
+
+  function uniqueRandom(count, max){
+    const set = new Set();
+    while(set.size < count){ set.add(1 + Math.floor(Math.random()*max)); }
+    return [...set];
+  }
+
+  const avatarIds = uniqueRandom(basePeople.length, 70);
+  const people = basePeople.map((p, i) => ({
+    ...p,
+    avatar:`https://i.pravatar.cc/100?img=${avatarIds[i]}&u=${Date.now()}-${i}`
+  }));
+
+  const list   = document.getElementById('suggested');
+  const payBtn = document.querySelector('.pay-btn');
+  const input  = document.querySelector('.input');
+
+  // Track which items are checked so we can preserve selection across re-renders
+  const selectedHandles = new Set();
+
+  function normalize(s){
+    return (s || '')
+      .toLowerCase()
+      .replace(/\s+/g,'')
+      .replace(/^\$/,''); // ignore leading $ in handles
+  }
+
+  function scorePerson(person, qNorm){
+    const n = normalize(person.name);
+    const h = normalize(person.handle);
+    if (!qNorm) return 0;
+    if (n === qNorm || h === qNorm) return 3;       // exact match
+    if (n.startsWith(qNorm) || h.startsWith(qNorm)) return 2; // prefix
+    if (n.includes(qNorm) || h.includes(qNorm)) return 1;     // substring
+    return 0;
+  }
+
+  function getOrderedPeople(query){
+    const q = normalize(query);
+    // Higher score should come first
+    return [...people].sort((a, b) => {
+      const sa = scorePerson(a, q);
+      const sb = scorePerson(b, q);
+      if (sa !== sb) return sb - sa; // descending by score
+      return a.name.localeCompare(b.name); // stable fallback
+    });
+  }
+
+  function renderList(data = people){
+    list.innerHTML = '';
+    data.forEach((p, idx) => {
+      const item = document.createElement('div'); item.className = 'item';
+      const av   = document.createElement('img'); av.className = 'avatar'; av.src = p.avatar; av.alt = p.name;
+      const meta = document.createElement('div'); meta.className = 'meta';
+      const n    = document.createElement('div'); n.className = 'name'; n.textContent = p.name;
+      const t    = document.createElement('div'); t.className = 'cashtag'; t.textContent = p.handle;
+      meta.append(n, t);
+
+      const check = document.createElement('div'); check.className = 'check';
+      if (selectedHandles.has(p.handle)) check.classList.add('checked');
+
+      item.append(av, meta, check);
+      list.append(item);
+      if (idx < data.length - 1){
+        const d = document.createElement('div'); d.className = 'divider'; list.append(d);
+      }
+
+      item.addEventListener('click', () => {
+        check.classList.toggle('checked');
+        if (check.classList.contains('checked')) selectedHandles.add(p.handle);
+        else selectedHandles.delete(p.handle);
+        updatePayState();
+      });
+    });
+  }
+
+  function updatePayState(){
+    const anySelected = selectedHandles.size > 0;
+    if (anySelected){ payBtn.classList.add('active'); }
+    else { payBtn.classList.remove('active'); }
+  }
+
+  // Initial render
+  renderList();
+
+  // “Use suggested” still checks everything currently visible
+  document.getElementById('useSuggested').addEventListener('click', () => {
+    const current = getOrderedPeople(input.value);
+    current.forEach(p => selectedHandles.add(p.handle));
+    renderList(current);
+    updatePayState();
+  });
+
+  // ⭐ Reorder suggestions as the user types
+  input.addEventListener('input', (e) => {
+    const ordered = getOrderedPeople(e.target.value);
+    renderList(ordered);
+  });
+</script>
+<script>
+  // Add these helpers
+  function slugify(s){
+    return (s || '')
+      .toLowerCase()
+      .replace(/^\$/,'')        // ignore a leading $
+      .replace(/[^a-z0-9]+/g,'')// keep letters/numbers
+      .slice(0,20);             // keep things tidy
+  }
+
+  function makeAdHocPerson(query){
+    const name = query.trim();
+    const base = slugify(name);
+    let handle = '$' + (base || 'user');
+    // ensure unique handle vs existing people
+    const taken = new Set(people.map(p => p.handle));
+    let n = 1;
+    while (taken.has(handle)) { handle = `$${base}${n++}`; }
+    return {
+      name,
+      handle,
+      avatar: `https://i.pravatar.cc/100?u=adhoc-${encodeURIComponent(name)}`
+    };
+  }
+
+  function exactMatchExists(qNorm){
+    return people.some(p => {
+      const n = normalize(p.name);
+      const h = normalize(p.handle);
+      return qNorm && (n === qNorm || h === qNorm);
+    });
+  }
+
+  // Replace your getOrderedPeople with this version
+  function getOrderedPeople(query){
+    const q = normalize(query);
+    const ordered = [...people].sort((a, b) => {
+      const sa = scorePerson(a, q);
+      const sb = scorePerson(b, q);
+      if (sa !== sb) return sb - sa;
+      return a.name.localeCompare(b.name);
+    });
+
+    // If user typed something AND it isn't an exact match,
+    // add a top "ad-hoc" suggestion using what they typed.
+    if (q && !exactMatchExists(q)) {
+      const adHoc = makeAdHocPerson(query);
+      // Preserve its checked state if user already selected it earlier
+      if (selectedHandles.has(adHoc.handle)) { /* no-op; state is in Set */ }
+      return [adHoc, ...ordered];
+    }
+    return ordered;
+  }
+
+  // Keep the rest of your code the same
+</script>
+<script>
+  // Get saved amount from localStorage
+  const savedAmount = localStorage.getItem('paymentAmount');
+  if (savedAmount) {
+    document.getElementById('displayAmount').textContent = savedAmount;
+  }
+</script>
+<script>
+  item.addEventListener('click', () => {
+  check.classList.toggle('checked');
+  if (check.classList.contains('checked')) selectedHandles.add(p.handle);
+  else selectedHandles.delete(p.handle);
+
+  // 💾 Save selected user to localStorage
+  localStorage.setItem('selectedName', p.name);
+  localStorage.setItem('selectedHandle', p.handle);
+
+  updatePayState();
+
+  // ✅ Redirect to comp.html
+  window.location.href = 'comp.html';
+});
+
+</script>
+
+
+<script>
+  (function () {
+    const payBtn = document.querySelector('.pay-btn');
+    const inputField = document.querySelector('.input');
+    const amountEl = document.getElementById('displayAmount');
+
+    // Face ID overlay elements
+    const overlay = document.getElementById('faceIdOverlay');
+    const circle  = overlay.querySelector('.faceid-circle');
+    const textEl  = document.getElementById('faceIdText');
+
+    function showFaceId() {
+      // lock background scroll while visible
+      document.body.style.overflow = 'hidden';
+      overlay.style.display = 'block';
+
+      // Reset state (in case of back nav)
+      circle.classList.remove('ok');
+      textEl.textContent = 'Face ID';
+
+      // Run 1st scan pass (~1.5s), then show tick (~0.8s), then go
+      setTimeout(() => {
+        circle.classList.add('ok');
+        textEl.textContent = 'Approved';
+        setTimeout(() => {
+          window.location.href = 'comp.html';
+        }, 800);
+      }, 1500);
+    }
+
+    function persistSelection() {
+      // typed recipient
+      const typedName = (inputField?.value || '').trim();
+      if (typedName) localStorage.setItem('selectedName', typedName);
+
+      // selected from suggestions
+      try {
+        const selectedHandle = Array.from((window.selectedHandles || new Set()))[0];
+        const selectedPerson = (window.people || []).find(p => p.handle === selectedHandle);
+        if (selectedPerson) {
+          localStorage.setItem('selectedName', selectedPerson.name);
+          localStorage.setItem('selectedHandle', selectedPerson.handle);
+        }
+      } catch {}
+
+      // amount from header
+      const amountText = amountEl?.textContent || '$500';
+      localStorage.setItem('paymentAmount', amountText);
+    }
+
+    payBtn.addEventListener('click', () => {
+      persistSelection();
+      showFaceId();
+    });
+
+    // If user returns to this page, ensure overlay is hidden and scrolling restored
+    window.addEventListener('pageshow', () => {
+      overlay.style.display = 'none';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+
+
+
+</body>
+</html>
